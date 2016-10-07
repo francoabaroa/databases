@@ -2,7 +2,9 @@ var db = require('../db');
 
 module.exports = {
   messages: {
-    get: function () {}, // a function which produces all the messages
+    get: function () {
+      console.log('In Get');
+    }, // a function which produces all the messages
     post: function () {} // a function which can be used to insert a message into the database
   },
 
@@ -12,4 +14,3 @@ module.exports = {
     post: function () {}
   }
 };
-
