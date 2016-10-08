@@ -34,15 +34,37 @@ var requestHandler = function(request, response) {
       autoIncrement: true
     },
     text: Sequelize.STRING(255),
-    username: Sequelize.STRING(16),
+    userId: Sequelize.INTEGER,
     room: Sequelize.STRING(16),
     time: Sequelize.STRING(20),
   }, {
-    timestamps: false
+    timestamps: false,
+    logging: false,
+  });
+
+  var Users = dbSequelize.define('Users', {
+    id: {
+      type: Sequelize.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
+    color: Sequelize.STRING(20),
+    bold: Sequelize.BOOLEAN,
+    italics: Sequelize.BOOLEAN,
+    username: Sequelize.STRING(16)
+  }, {
+    timestamps: false,
+    logging: false
   });
 
   Messages.sync().then(function () {
-    console.log('Sync Complete');
+    console.log('Messages Sync Complete');
+  }).catch(function (err) {
+    console.log(err);
+  });
+
+  Users.sync().then(function() {
+    console.log('Users Sync Complete.');
   }).catch(function (err) {
     console.log(err);
   });
@@ -53,10 +75,13 @@ var requestHandler = function(request, response) {
       var curMessage = {};
       curMessage.createdAt = row.time;
       curMessage.text = row.text;
-      curMessage.username = row.username;
       curMessage.objectId = row.id;
       curMessage.roomname = row.room;
-      messages.push(curMessage);
+      //curMessage.username = row.userId;
+      Users.findById(row.userId).then(function(data) {
+        curMessage.username = data.dataValues.username;
+        messages.push(curMessage);
+      });
     });
   };
 
@@ -116,18 +141,7 @@ var requestHandler = function(request, response) {
       Messages.findAll({}).then(function(data) {
         parseData(data);
       });
-      /*
-      db.query('select * from messages', function(err, rows) {
-        if (err) {
-          throw err;
-        } else {
-          // console.log('Inside Request Handler. Received data: ', rows);
-          parseData(rows);
-        }
-      });
-      */
-
-      //loadMessages();
+      
       if (options.order === undefined) {
         options.results = messages;
       } else if (options.order = '-createdAt') {
@@ -140,6 +154,9 @@ var requestHandler = function(request, response) {
         });
       }
       
+
+// {id: null, color: 'blue', bold: 1, italics: 1, username: ' stuff', where: {}}
+
     } else if (request.method === 'POST') {
       options['statusCode'] = 201;
       response.statusCode = 201;
@@ -150,21 +167,25 @@ var requestHandler = function(request, response) {
 
       request.on('end', function(data) {
         var post = JSON.parse(body);
-
-        Messages.create({id: null, text: post.text, username: post.username, time: getDate(), room: post.roomname}).then(function(err, res) {          
-          Messages.findAll({}).then(function(data) {
-            parseData(data);
-            options['results'] = messages.sort(function(a, b) {
-              if (a.objectId > b.objectId) {
-                return -1;
-              } else {
-                return 1;
-              }
-            });
-            response.end(JSON.stringify(options));
-          });           
-        }).catch(function(err) {
-          console.log('Error Posting: ' + err);
+        var msgUsername = post.username;
+        console.log('msgUsername = ' + msgUsername);
+        Users.findOrCreate({where: {username: msgUsername}, defaults: {id: null, color: 'blue', bold: 1, italics: 1}}).spread(function(user, created) {
+          var usernameId = user.dataValues.id;
+          return usernameId;
+        }).then(function(userId) {
+          Messages.create({id: null, text: post.text, userId: userId, time: getDate(), room: post.roomname}).then(function(err, res) {          
+            Messages.findAll({}).then(function(data) {
+              parseData(data);
+              options['results'] = messages.sort(function(a, b) {
+                if (a.objectId > b.objectId) {
+                  return -1;
+                } else {
+                  return 1;
+                }
+              });
+              response.end(JSON.stringify(options));
+            });  
+          });   
         });
       });
     }
