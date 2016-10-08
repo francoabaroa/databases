@@ -40,7 +40,7 @@ var requestHandler = function(request, response) {
       curMessage.objectId = row.id;
       curMessage.roomname = row.room;
       messages.push(curMessage);
-      //console.log('row = ' + JSON.stringify(row));
+      // console.log('row = ' + JSON.stringify(row));
     });
   };
 
@@ -101,7 +101,7 @@ var requestHandler = function(request, response) {
         if (err) {
           throw err;
         } else {
-          //console.log('Inside Request Handler. Received data: ', rows);
+          // console.log('Inside Request Handler. Received data: ', rows);
           parseData(rows);
         }
       });
@@ -136,25 +136,29 @@ var requestHandler = function(request, response) {
             throw err;
           } else {
             console.log('Insert Successful');
-            console.log('result = ' + JSON.stringify(result));
+            // console.log('result = ' + JSON.stringify(result));
             //console.log('Inside Request Handler. Received data: ', rows);
             //parseData(rows);
+            
             db.query('select * from messages', function(err, rows) {
               if (err) {
                 throw err;
               } else {
                 parseData(rows);
-                options['results'] = messages;
+                options['results'] = messages.sort(function(a, b) {
+                  if (a.objectId > b.objectId) {
+                    return -1;
+                  } else {
+                    return 1;
+                  }
+                });
+                // console.log('OPTIONS: ', options);
                 response.end(JSON.stringify(options));
               }
             });
+            
           }
         });
-        
-
-        
-
-
       
       });
     }
