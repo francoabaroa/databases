@@ -4,6 +4,7 @@ var lineReader = require('readline');
 var db = require('./db/index.js');
 var Sequelize = require('sequelize');
 var dbSequelize = new Sequelize('chat', 'root', ' ');
+var Promise = require('bluebird');
 /*************************************************************
 
 You should implement your request handler function in this file.
@@ -19,6 +20,7 @@ this file and include it in basic-server.js so that it actually works.
 **************************************************************/
 
 var messages = [];
+var userIds = {};
 
 var getDate = function() {
   var time = new Date();
@@ -77,11 +79,16 @@ var requestHandler = function(request, response) {
       curMessage.text = row.text;
       curMessage.objectId = row.id;
       curMessage.roomname = row.room;
-      //curMessage.username = row.userId;
-      Users.findById(row.userId).then(function(data) {
-        curMessage.username = data.dataValues.username;
+      if (userIds[row.userId] === undefined) {
+        Users.findById(row.userId).then(function(data) {
+          curMessage.username = data.dataValues.username;
+          userIds[row.userId] = data.dataValues.username;
+          messages.push(curMessage);
+        });
+      } else {
+        curMessage.username = userIds[row.userId];
         messages.push(curMessage);
-      });
+      }
     });
   };
 
@@ -141,7 +148,7 @@ var requestHandler = function(request, response) {
       Messages.findAll({}).then(function(data) {
         parseData(data);
       });
-      
+
       if (options.order === undefined) {
         options.results = messages;
       } else if (options.order = '-createdAt') {
