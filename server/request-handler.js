@@ -31,6 +31,7 @@ var requestHandler = function(request, response) {
   };
 
   var parseData = function(data) {
+    messages = [];
     data.forEach(function(row) {
       var curMessage = {};
       curMessage.createdAt = row.time;
@@ -39,18 +40,7 @@ var requestHandler = function(request, response) {
       curMessage.objectId = row.id;
       curMessage.roomname = row.room;
       messages.push(curMessage);
-      console.log('row = ' + JSON.stringify(row));
-    });
-  };
-
-  var loadMessages = function() {
-    fs.readFile('./messages.txt', function(err, data) {
-      if (err) {
-        messages = [];
-        saveMessages();
-      } else {
-        messages = JSON.parse(data);
-      }
+      //console.log('row = ' + JSON.stringify(row));
     });
   };
 
@@ -121,7 +111,7 @@ var requestHandler = function(request, response) {
         options.results = messages;
       } else if (options.order = '-createdAt') {
         options.results = messages.sort(function(a, b) {
-          if (a.createdAt > b.createdAt) {
+          if (a.objectId > b.objectId) {
             return -1;
           } else {
             return 1;
@@ -137,19 +127,35 @@ var requestHandler = function(request, response) {
         body += data;
       });
 
-      request.on('end', function() {
+      request.on('end', function(data) {
         var post = JSON.parse(body);
-        post['createdAt'] = getDate();
-        post['objectId'] = post['createdAt'];
-        messages.unshift(post);
-        if (messages.length === 101) {
-          messages.pop();
-        }
+        console.log('post = ' + JSON.stringify(post));
         
-        saveMessages();
-        options['results'] = messages;
+        db.query('insert into messages (id, text, username, time, room) values (?, ?, ?, ?, ?)', [messages.length + 1, post.text, post.username, getDate(), post.roomname], function(err, result) {
+          if (err) {
+            throw err;
+          } else {
+            console.log('Insert Successful');
+            console.log('result = ' + JSON.stringify(result));
+            //console.log('Inside Request Handler. Received data: ', rows);
+            //parseData(rows);
+            db.query('select * from messages', function(err, rows) {
+              if (err) {
+                throw err;
+              } else {
+                parseData(rows);
+                options['results'] = messages;
+                response.end(JSON.stringify(options));
+              }
+            });
+          }
+        });
         
-        response.end(JSON.stringify(options));
+
+        
+
+
+      
       });
     }
 

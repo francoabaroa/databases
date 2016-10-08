@@ -18,14 +18,6 @@ connection.connect(function (err) {
   }
 });
 
-connection.query('select * from messages', function(err, rows) {
-  if (err) {
-    throw err;
-  } else {
-    console.log('Received data: ', rows);
-  }
-});
-
 //connection.end();
 
 console.log('Connecting to DB');
