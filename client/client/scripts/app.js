@@ -27,6 +27,7 @@ var app = {
 
     // Fetch previous messages
     app.startSpinner();
+    console.log('fetching!');
     app.fetch(false);
 
     // Poll for new messages

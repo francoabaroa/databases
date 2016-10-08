@@ -26,10 +26,6 @@ var getDate = function() {
 
 var requestHandler = function(request, response) {
 
-  var saveMessages = function() {
-    fs.writeFile('./messages.txt', JSON.stringify(messages), function() {});
-  };
-
   var parseData = function(data) {
     messages = [];
     data.forEach(function(row) {
@@ -130,7 +126,8 @@ var requestHandler = function(request, response) {
       request.on('end', function(data) {
         var post = JSON.parse(body);
         console.log('post = ' + JSON.stringify(post));
-        
+        console.log('messages.length = ' + messages.length);
+        console.log('messages = ' + JSON.stringify(messages));
         db.query('insert into messages (id, text, username, time, room) values (?, ?, ?, ?, ?)', [messages.length + 1, post.text, post.username, getDate(), post.roomname], function(err, result) {
           if (err) {
             throw err;
@@ -145,6 +142,7 @@ var requestHandler = function(request, response) {
                 throw err;
               } else {
                 parseData(rows);
+                console.log('data parsed. messages.length = ' + messages.length);
                 options['results'] = messages.sort(function(a, b) {
                   if (a.objectId > b.objectId) {
                     return -1;
