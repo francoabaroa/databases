@@ -2,7 +2,8 @@ var fs = require('fs');
 var path = require('path');
 var lineReader = require('readline');
 var db = require('./db/index.js');
-
+var Sequelize = require('sequelize');
+var dbSequelize = new Sequelize('chat', 'root', ' ');
 /*************************************************************
 
 You should implement your request handler function in this file.
@@ -26,6 +27,26 @@ var getDate = function() {
 
 var requestHandler = function(request, response) {
 
+  var Messages = dbSequelize.define('Messages', {
+    id: {
+      type: Sequelize.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
+    text: Sequelize.STRING(255),
+    username: Sequelize.STRING(16),
+    room: Sequelize.STRING(16),
+    time: Sequelize.STRING(20),
+  }, {
+    timestamps: false
+  });
+
+  Messages.sync().then(function () {
+    console.log('Sync Complete');
+  }).catch(function (err) {
+    console.log(err);
+  });
+
   var parseData = function(data) {
     messages = [];
     data.forEach(function(row) {
@@ -36,7 +57,6 @@ var requestHandler = function(request, response) {
       curMessage.objectId = row.id;
       curMessage.roomname = row.room;
       messages.push(curMessage);
-      // console.log('row = ' + JSON.stringify(row));
     });
   };
 
@@ -93,6 +113,10 @@ var requestHandler = function(request, response) {
     if (request.method === 'OPTIONS') {
     } else if (request.method === 'GET') {
 
+      Messages.findAll({}).then(function(data) {
+        parseData(data);
+      });
+      /*
       db.query('select * from messages', function(err, rows) {
         if (err) {
           throw err;
@@ -101,6 +125,7 @@ var requestHandler = function(request, response) {
           parseData(rows);
         }
       });
+      */
 
       //loadMessages();
       if (options.order === undefined) {
@@ -125,34 +150,22 @@ var requestHandler = function(request, response) {
 
       request.on('end', function(data) {
         var post = JSON.parse(body);
-        db.query('insert into messages (id, text, username, time, room) values (?, ?, ?, ?, ?)', [null, post.text, post.username, getDate(), post.roomname], function(err, result) {
-          if (err) {
-            throw err;
-          } else {
-            // console.log('result = ' + JSON.stringify(result));
-            //console.log('Inside Request Handler. Received data: ', rows);
-            //parseData(rows);
-            
-            db.query('select * from messages', function(err, rows) {
-              if (err) {
-                throw err;
+
+        Messages.create({id: null, text: post.text, username: post.username, time: getDate(), room: post.roomname}).then(function(err, res) {          
+          Messages.findAll({}).then(function(data) {
+            parseData(data);
+            options['results'] = messages.sort(function(a, b) {
+              if (a.objectId > b.objectId) {
+                return -1;
               } else {
-                parseData(rows);
-                options['results'] = messages.sort(function(a, b) {
-                  if (a.objectId > b.objectId) {
-                    return -1;
-                  } else {
-                    return 1;
-                  }
-                });
-                // console.log('OPTIONS: ', options);
-                response.end(JSON.stringify(options));
+                return 1;
               }
             });
-            
-          }
+            response.end(JSON.stringify(options));
+          });           
+        }).catch(function(err) {
+          console.log('Error Posting: ' + err);
         });
-      
       });
     }
 
