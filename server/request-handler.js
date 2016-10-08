@@ -125,14 +125,10 @@ var requestHandler = function(request, response) {
 
       request.on('end', function(data) {
         var post = JSON.parse(body);
-        console.log('post = ' + JSON.stringify(post));
-        console.log('messages.length = ' + messages.length);
-        console.log('messages = ' + JSON.stringify(messages));
-        db.query('insert into messages (id, text, username, time, room) values (?, ?, ?, ?, ?)', [messages.length + 1, post.text, post.username, getDate(), post.roomname], function(err, result) {
+        db.query('insert into messages (id, text, username, time, room) values (?, ?, ?, ?, ?)', [null, post.text, post.username, getDate(), post.roomname], function(err, result) {
           if (err) {
             throw err;
           } else {
-            console.log('Insert Successful');
             // console.log('result = ' + JSON.stringify(result));
             //console.log('Inside Request Handler. Received data: ', rows);
             //parseData(rows);
@@ -142,7 +138,6 @@ var requestHandler = function(request, response) {
                 throw err;
               } else {
                 parseData(rows);
-                console.log('data parsed. messages.length = ' + messages.length);
                 options['results'] = messages.sort(function(a, b) {
                   if (a.objectId > b.objectId) {
                     return -1;
